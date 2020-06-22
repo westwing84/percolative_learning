@@ -1,6 +1,6 @@
 # 浸透学習の実装
 
-from tensorflow.keras.layers import Input, Dense
+from tensorflow.keras.layers import Input, Dense, BatchNormalization
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import SGD, Adam
 from tensorflow.keras.datasets import mnist
@@ -14,20 +14,25 @@ percnet_size = 100      # 浸透サブネットの各層の素子数
 percfeature_size = 100  # 浸透特徴の個数
 intnet_size = 100       # 統合サブネットの各層の素子数
 output_size = 10        # 出力データのサイズ
-epochs_prior = 100      # 事前学習のエポック
-epochs_perc = 1000      # 浸透学習のエポック
+epochs_prior = 100      # 事前学習のエポック数
+epochs_perc = 1000      # 浸透学習のエポック数
+epochs_adj = 200        # 微調整のエポック数
 batch_size = 256        # バッチサイズ
-validation_split = 0.2  # 評価に用いるデータの割合
-decay = 0.5             # 減衰率
+validation_split = 0.0  # 評価に用いるデータの割合
+decay = 0.05            # 減衰率
 optimizer = Adam()      # 最適化アルゴリズム
 
 # ニューラルネットワークの設計
 # 浸透サブネット
 input_img = Input(shape=(maindt_size+subdt_size,))
-x = Dense(percnet_size, activation='relu')(input_img)
+x = BatchNormalization()(input_img)
+x = Dense(percnet_size, activation='relu')(x)
+x = BatchNormalization()(x)
 feature = Dense(percfeature_size, activation='relu')(x)
 # 統合サブネット
-x = Dense(intnet_size, activation='relu')(feature)
+x = BatchNormalization()(feature)
+x = Dense(intnet_size, activation='relu')(x)
+x = BatchNormalization()(x)
 x = Dense(intnet_size, activation='relu')(x)
 output = Dense(output_size, activation='softmax')(x)
 
@@ -44,8 +49,6 @@ percnet.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accura
 (x_train_aux, y_train), (x_test, y_test) = mnist.load_data()
 y_train = to_categorical(y_train, output_size)
 y_test = to_categorical(y_test, output_size)
-print(x_train_aux.shape)
-print(y_train.shape)
 # 各データが0~1の値となるように調整
 x_train_aux = x_train_aux.astype('float32') / 255
 x_test = x_test.astype('float32') / 255
@@ -90,68 +93,27 @@ print(perc_feature.shape)
 
 # 浸透学習
 epoch = 0
+loss = 1
 non_perc_rate = 1   # 非浸透率
-nprate_min = 1e-5   # 非浸透率の最小値
-while non_perc_rate > nprate_min or epoch < epochs_perc:
+nprate_min = 1e-5   # 非浸透率の閾値
+loss_min = 1e-3     # 損失関数の値の閾値
+while non_perc_rate > nprate_min or loss > loss_min:
     non_perc_rate = (1 - decay) ** epoch
     x_train = np.concatenate([non_perc_rate * x_train_aux, x_train_main], axis=1)
     percnet.fit(x_train, perc_feature,
                 initial_epoch=epoch, epochs=epoch+1,
                 batch_size=batch_size,
                 validation_split=validation_split)
-    
+    loss = percnet.evaluate(x_train, perc_feature, verbose=0)[0]
     epoch += 1
+    if epoch >= epochs_perc:
+        break
 
-'''
-# オートエンコーダへ学習＆識別
-autoencoder.summary()
-autoencoder.fit(x_train, x_train,
-                epochs=epochs,
+# 微調整
+if True:    # Trueには微調整する条件を入れる(現状は常に微調整を行う)
+    non_perc_rate = 0
+    x_train = np.concatenate([non_perc_rate * x_train_aux, x_train_main], axis=1)
+    network.fit(x_train, y_train,
+                epochs=epochs_adj,
                 batch_size=batch_size,
-                shuffle=True,
-                validation_data=(x_test, x_test))
-# テストデータの識別結果を保存
-encoded_imgs = encoder.predict(x_test)
-decoded_imgs = decoder.predict(encoded_imgs)
-autoencoded_imgs = autoencoder.predict(x_test)
-
-# 元データと識別結果の画像を表示
-n = 10
-plt.figure(figsize=(20, 4))
-for i in range(n):
-    ax = plt.subplot(2, n, i+1)
-    plt.imshow(x_test[i].reshape(28, 28))
-    plt.gray()
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-
-    ax = plt.subplot(2, n, i+1+n)
-    plt.imshow(autoencoded_imgs[i].reshape(28, 28))
-    plt.gray()
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-plt.show()
-
-noise_factor = 0.2
-x_test_noisy = x_test + noise_factor * np.random.normal(loc=0.0, scale=1.0, size=x_test.shape)
-x_test_noisy = np.clip(x_test_noisy, 0., 1.)
-
-autoencoded_imgs = autoencoder.predict(x_test_noisy)
-
-n = 10
-plt.figure(figsize=(20, 4))
-for i in range(n):
-    ax = plt.subplot(2, n, i+1)
-    plt.imshow(x_test_noisy[i].reshape(28, 28))
-    plt.gray()
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-
-    ax = plt.subplot(2, n, i+1+n)
-    plt.imshow(autoencoded_imgs[i].reshape(28, 28))
-    plt.gray()
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-plt.show()
-'''
-
+                validation_split=validation_split)
