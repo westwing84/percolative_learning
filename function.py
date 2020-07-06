@@ -15,6 +15,20 @@ def make_tensorboard(set_dir_name=''):
     return tensorboard
 
 
+class LossAccHistory(Callback):
+    def __init__(self):
+        self.losses = []
+        self.accuracy = []
+        self.losses_val = []
+        self.accuracy_val = []
+
+    def on_epoch_end(self, epoch, logs={}):
+        self.losses.append(logs.get('loss'))
+        self.accuracy.append(logs.get('accuracy'))
+        self.losses_val.append(logs.get('val_loss'))
+        self.accuracy_val.append(logs.get('val_accuracy'))
+
+
 def shuffle_data(data, shuffle_rate):
     dtsize = data.shape[1]
     dtnum_shuffled = int(dtsize * shuffle_rate)
