@@ -15,6 +15,7 @@ def make_tensorboard(set_dir_name=''):
     return tensorboard
 
 
+# lossおよびAccuracyを保存するためのクラス
 class LossAccHistory(Callback):
     def __init__(self):
         self.losses = []
@@ -29,6 +30,7 @@ class LossAccHistory(Callback):
         self.accuracy_val.append(logs.get('val_accuracy'))
 
 
+# データのうちshuffle_rate(0~1)の割合のものをシャッフルする関数
 def shuffle_data(data, shuffle_rate):
     dtsize = data.shape[1]
     dtnum_shuffled = int(dtsize * shuffle_rate)

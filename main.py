@@ -18,10 +18,10 @@ percnet_size = 100      # 浸透サブネットの各層の素子数
 percfeature_size = 100  # 浸透特徴の個数
 intnet_size = 100       # 統合サブネットの各層の素子数
 output_size = 10        # 出力データのサイズ
-epochs_prior = 100      # 事前学習のエポック数
-epochs_perc = 500      # 浸透学習のエポック数
-epochs_adj = 200        # 微調整のエポック数
-batch_size = 128        # バッチサイズ
+epochs_prior = 1000      # 事前学習のエポック数
+epochs_perc = 10000      # 浸透学習のエポック数
+epochs_adj = 2000       # 微調整のエポック数
+batch_size = 1024        # バッチサイズ
 validation_split = 0.0  # 評価に用いるデータの割合
 verbose = 2             # 学習進捗の表示モード
 decay = 0.05            # 減衰率
@@ -44,13 +44,14 @@ percnet = Model(input_img, feature)
 percnet.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy'])
 
 # 全体のネットワークの設定
-x = percnet.layers[-1].output
+x = percnet.output
 for i in range(layers_intnet - 1):
     x = Dense(intnet_size)(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
-output = Dense(output_size, activation='softmax')(x)
-network = Model(percnet.inputs, output)
+x = Dense(output_size)(x)
+output = Activation('softmax')(x)
+network = Model(percnet.input, output)
 network.compile(optimizer=optimizer, loss='categorical_crossentropy', metrics=['accuracy'])
 
 
@@ -78,13 +79,13 @@ n = 10
 plt.figure(figsize=(20, 4))
 for i in range(n):
     ax = plt.subplot(2, n, i+1)
-    plt.imshow(x_test_aux[i].reshape(28, 28))
+    plt.imshow(x_train_aux[i].reshape(28, 28))
     plt.gray()
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
 
     ax = plt.subplot(2, n, n + i + 1)
-    plt.imshow(x_test_main[i].reshape(28, 28))
+    plt.imshow(x_train_main[i].reshape(28, 28))
     plt.gray()
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
