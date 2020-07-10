@@ -18,9 +18,9 @@ percnet_size = 100      # 浸透サブネットの各層の素子数
 percfeature_size = 100  # 浸透特徴の個数
 intnet_size = 100       # 統合サブネットの各層の素子数
 output_size = 10        # 出力データのサイズ
-epochs_prior = 1000      # 事前学習のエポック数
-epochs_perc = 10000      # 浸透学習のエポック数
-epochs_adj = 2000       # 微調整のエポック数
+epochs_prior = 100      # 事前学習のエポック数
+epochs_perc = 1000      # 浸透学習のエポック数
+epochs_adj = 200       # 微調整のエポック数
 batch_size = 1024        # バッチサイズ
 validation_split = 0.0  # 評価に用いるデータの割合
 verbose = 2             # 学習進捗の表示モード
@@ -85,6 +85,7 @@ for i in range(n):
     ax.get_yaxis().set_visible(False)
 
     ax = plt.subplot(2, n, n + i + 1)
+    
     plt.imshow(x_train_main[i].reshape(28, 28))
     plt.gray()
     ax.get_xaxis().set_visible(False)
@@ -143,17 +144,11 @@ if True:    # Trueには微調整する条件を入れる(現状は常に微調�
     x_train = np.concatenate([non_perc_rate * x_train_aux, x_train_main], axis=1)
     network.fit(x_train, y_train,
                 initial_epoch=epochs_prior+epochs_perc,
-                epochs=epochs_prior+epochs_perc+epochs_adj,
+                epochs=epochs_prior+epoch+epochs_adj,
                 batch_size=batch_size,
                 verbose=verbose,
                 validation_data=(x_test, y_test),
                 callbacks=[history_list])
-    '''
-    history_list.history['loss'].append(history.history['loss'])
-    history_list.history['val_loss'].append(history.history['val_loss'])
-    history_list.history['accuracy'].append(history.history['accuracy'])
-    history_list.history['val_accuracy'].append(history.history['val_accuracy'])
-    '''
 
 plt.figure()
 plt.plot(history_list.accuracy)
