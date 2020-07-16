@@ -50,3 +50,7 @@ def shuffle_data(data, shuffle_rate):
     data = data[:, idlist]
     return data
 
+def concat(dt1, dt2):
+    dt = np.concatenate([dt1, dt2], axis=1)
+    return dt
+
