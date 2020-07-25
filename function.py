@@ -30,8 +30,8 @@ class LossAccHistory(Callback):
         self.accuracy_val.append(logs.get('val_accuracy'))
 
 
-# データのうちshuffle_rate(0~1)の割合のものをシャッフルする関数
-def shuffle_data(data, shuffle_rate):
+# 画像のピクセルのうちshuffle_rate(0~1)の割合のものをシャッフルする関数
+def shuffle_pixel(data, shuffle_rate):
     dtsize = data.shape[1]
     dtnum_shuffled = int(dtsize * shuffle_rate)
     id_shuffled = []
@@ -49,6 +49,16 @@ def shuffle_data(data, shuffle_rate):
         idlist[id[j]] = idlist[id_shuffled[j]]
     data = data[:, idlist]
     return data
+
+
+def shuffle_datasets(x, y):
+    dtsize = len(x)
+    id_shuffled = np.arange(dtsize)
+    id_shuffled = np.random.permutation(id_shuffled)
+    x_out = x[id_shuffled, :]
+    y_out = y[id_shuffled, :]
+    return x_out, y_out
+
 
 def concat(dt1, dt2):
     dt = np.concatenate([dt1, dt2], axis=1)
