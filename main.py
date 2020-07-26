@@ -23,11 +23,11 @@ epochs_prior = 200      # 事前学習のエポック数
 epochs_perc = 1000      # 浸透学習のエポック数
 epochs_adj = 300        # 微調整のエポック数
 batch_size = 1024       # バッチサイズ
-validation_split = 0.3  # 評価に用いるデータの割合
-test_split = 0.2        # テストに用いるデータの割合
+validation_split = 1 / 7  # 評価に用いるデータの割合
+test_split = 1 / 7        # テストに用いるデータの割合
 verbose = 2             # 学習進捗の表示モード
-decay = 0.01            # 減衰率
-optimizer = Adam(lr=0.0001)      # 最適化アルゴリズム
+decay = 0.05            # 減衰率
+optimizer = SGD(lr=0.001)      # 最適化アルゴリズム
 # callbacks = [make_tensorboard(set_dir_name='log')]  # コールバック
 
 
@@ -77,7 +77,6 @@ y = np.concatenate([y_train, y_test], axis=0)
 x_aux, y = shuffle_datasets(x_aux, y)
 x_main = shuffle_pixel(x_aux, shuffle_rate)
 x = np.concatenate([x_aux, x_main], axis=1)
-print(x.shape)
 id_test = int(test_split * x.shape[0])
 id_val = int(validation_split * x.shape[0])
 x_train = x[:-(id_val+id_test)]
@@ -88,9 +87,6 @@ x_test = x[-id_test:]
 y_test = y[-id_test:]
 x_val[:, :subdt_size] = 0
 x_test[:, :subdt_size] = 0
-print(x_train.shape)
-print(x_val.shape)
-print(x_test.shape)
 
 '''
 # 主データの作成
@@ -110,17 +106,18 @@ x_val[:, :subdt_size] = 0
 
 '''
 # 入力データの表示
+print(y_test[0:10])
 n = 10
 plt.figure()
 for i in range(n):
     ax = plt.subplot(2, n, i+1)
-    plt.imshow(x_train[i][:subdt_size].reshape(28, 28))
+    plt.imshow(x_test[i][:subdt_size].reshape(28, 28))
     plt.gray()
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
 
     ax = plt.subplot(2, n, n + i + 1)
-    plt.imshow(x_train[i][subdt_size:].reshape(28, 28))
+    plt.imshow(x_test[i][subdt_size:].reshape(28, 28))
     plt.gray()
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
