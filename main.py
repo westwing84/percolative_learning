@@ -4,7 +4,7 @@ from tensorflow.keras.optimizers import Adam, SGD
 from tensorflow.keras.losses import mean_squared_error, categorical_crossentropy
 import numpy as np
 import matplotlib.pyplot as plt
-from function import network, MNISTDataset, get_main_aux_data, Trainer, make_tensorboard, shuffle_pixel, shuffle_datasets, LossAccHistory
+from function import network, MNISTDataset, get_main_aux_data, Trainer, LossAccHistory
 
 maindt_size = 784       # 主データのサイズ
 subdt_size = 784        # 補助データのサイズ
@@ -15,14 +15,14 @@ percnet_size = 100      # 浸透サブネットの各層の素子数
 percfeature_size = 100  # 浸透特徴の個数
 intnet_size = 100       # 統合サブネットの各層の素子数
 output_size = 10        # 出力データのサイズ
-epochs_prior = 200      # 事前学習のエポック数
+epochs_prior = 300      # 事前学習のエポック数
 epochs_perc = 1000      # 浸透学習のエポック数
-epochs_adj = 300        # 微調整のエポック数
+epochs_adj = 200        # 微調整のエポック数
 batch_size = 1024       # バッチサイズ
 validation_split = 1 / 7  # 評価に用いるデータの割合
 test_split = 1 / 7        # テストに用いるデータの割合
 verbose = 2             # 学習進捗の表示モード
-decay = 0.05            # 減衰率
+decay = 0.01            # 減衰率
 optimizer = Adam(lr=0.0001)      # 最適化アルゴリズム
 # callbacks = [make_tensorboard(set_dir_name='log')]  # コールバック
 
@@ -46,24 +46,8 @@ y = np.concatenate([y_train, y_test], axis=0)
 # x, y = shuffle_datasets(x, y)
 x_train, y_train, x_val, y_val, x_test, y_test = get_main_aux_data(x, y, validation_split, test_split, shuffle_rate)
 # ValidationとTestデータの補助データは全て0にする
-x_val[:, :subdt_size] = 0
-x_test[:, :subdt_size] = 0
-
-'''
-# 主データの作成
-x_train_main = shuffle_pixel(x_train_aux, shuffle_rate)
-x_test_main = shuffle_pixel(x_test_aux, shuffle_rate_test)
-x_test_aux = 0 * x_test_aux    # テストデータの補助データはすべて0(主データのみで再現できるか確認するため)
-# 主データと補助データを結合
-x_train = np.concatenate([x_train_aux, x_train_main], axis=1)
-x_test = np.concatenate([x_test_aux, x_test_main], axis=1)
-validation_id = int(validation_split * x_train.shape[0])
-x_val = x_train[-validation_id:]
-x_train = x_train[:-validation_id]
-y_val = y_train[-validation_id:]
-y_train = y_train[:-validation_id]
-x_val[:, :subdt_size] = 0
-'''
+x_val[:, subdt_size:] = 0
+x_test[:, subdt_size:] = 0
 
 '''
 # 入力データの表示
@@ -90,6 +74,7 @@ history_list = LossAccHistory()
 history_list = trainer.train(x_train, y_train,
                              x_val, y_val,
                              subdt_size,
+                             layers_intnet,
                              batch_size,
                              epochs_prior, epochs_perc, epochs_adj,
                              decay,

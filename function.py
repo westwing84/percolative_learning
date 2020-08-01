@@ -62,7 +62,7 @@ class MNISTDataset():
 # 主データと補助データの準備
 def get_main_aux_data(x, y, validation_split, test_split, shuffle_rate):
     x_main = shuffle_pixel(x, shuffle_rate)
-    x = np.concatenate([x, x_main], axis=1)
+    x = np.concatenate([x_main, x], axis=1)
     id_test = int(test_split * x.shape[0])
     id_val = int(validation_split * x.shape[0])
     x_train = x[:-(id_val + id_test)]
@@ -82,12 +82,14 @@ class Trainer():
         self.model_wholenet = model_wholenet
         self.model_percnet.compile(loss=mean_squared_error, optimizer=optimizer)
         self.model_wholenet.compile(loss=categorical_crossentropy, optimizer=optimizer, metrics=['accuracy'])
+        self.optimizer = optimizer
         self.verbose = verbose
 
     # 学習
     def train(self, x_train, y_train,
               x_val, y_val,
               auxdt_size,
+              num_layers_intnet,
               batch_size,
               epochs_prior, epochs_perc, epochs_adj,
               decay,
@@ -113,31 +115,32 @@ class Trainer():
         loss_min = 1e-5  # 損失関数の値の閾値
         # 補助データに非浸透率を掛けるための配列を作成
         non_perc_vec = np.ones(x_train.shape[1])
-        non_perc_vec[:auxdt_size] = 1 - decay
+        non_perc_vec[auxdt_size:] = 1 - decay
 
-        '''
         # 統合サブネットの重みを固定
-        for i in range(3 * (layers_intnet - 1) + 2):
-            network.layers[-i-1].trainable = False
-        network.compile(optimizer=optimizer, loss=categorical_crossentropy, metrics=['accuracy'])
-        '''
+        for i in range(3 * (num_layers_intnet - 1) + 2):
+            self.model_wholenet.layers[-i-1].trainable = False
+        self.model_wholenet.compile(optimizer=self.optimizer, loss=categorical_crossentropy, metrics=['accuracy'])
 
         # 浸透学習
-        self.model_percnet.summary()
+        self.model_wholenet.summary()
         while non_perc_rate > nprate_min or loss > loss_min:
             non_perc_rate = (1 - decay) ** epoch
             print('Non-Percolation Rate =', non_perc_rate)
-            self.model_percnet.fit(x_train, perc_feature,
-                                   initial_epoch=epochs_prior + epoch, epochs=epochs_prior + epoch + 1,
-                                   batch_size=batch_size,
-                                   verbose=self.verbose,
-                                   validation_data=(x_val, perc_feature_val))
+            self.model_wholenet.fit(x_train, y_train,
+                                    initial_epoch=epochs_prior + epoch, epochs=epochs_prior + epoch + 1,
+                                    batch_size=batch_size,
+                                    verbose=self.verbose,
+                                    validation_data=(x_val, y_val),
+                                    callbacks=[history])
+            '''
             ev = self.model_wholenet.evaluate(x_train, y_train, batch_size=batch_size, verbose=0)
             ev_val = self.model_wholenet.evaluate(x_val, y_val, batch_size=batch_size, verbose=0)
             history.losses.append(ev[0])
             history.accuracy.append(ev[1])
             history.losses_val.append(ev_val[0])
             history.accuracy_val.append(ev_val[1])
+            '''
             loss = self.model_percnet.evaluate(x_train, perc_feature, verbose=0)
             x_train *= non_perc_vec
             epoch += 1
@@ -145,15 +148,13 @@ class Trainer():
                 break
 
         # 3：微調整
-        '''
         # 統合サブネットの重み固定を解除
-        for i in range(3 * (layers_intnet - 1) + 2):
-            network.layers[-i-1].trainable = True
-        network.compile(optimizer=optimizer, loss=categorical_crossentropy, metrics=['accuracy'])
-        network.summary()
-        '''
+        for i in range(3 * (num_layers_intnet - 1) + 2):
+            self.model_wholenet.layers[-i-1].trainable = True
+        self.model_wholenet.compile(optimizer=self.optimizer, loss=categorical_crossentropy, metrics=['accuracy'])
+        self.model_wholenet.summary()
         if True:  # 微調整を行う条件を入れる(現状は常に微調整を行う)
-            non_perc_vec[:auxdt_size] = 0
+            non_perc_vec[auxdt_size:] = 0
             x_train *= non_perc_vec
             self.model_wholenet.fit(x_train, y_train,
                                     initial_epoch=epochs_prior + epochs_perc,
