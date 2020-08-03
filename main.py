@@ -8,7 +8,7 @@ from function import network, MNISTDataset, get_main_aux_data, Trainer, LossAccH
 
 maindt_size = 784       # 主データのサイズ
 subdt_size = 784        # 補助データのサイズ
-shuffle_rate = 0.5      # 主データのシャッフル率
+shuffle_rate = 0.75      # 主データのシャッフル率
 layers_percnet = 2      # 浸透サブネットの層数
 layers_intnet = 3       # 統合サブネットの層数
 percnet_size = 100      # 浸透サブネットの各層の素子数
@@ -22,7 +22,7 @@ batch_size = 256       # バッチサイズ
 validation_split = 1 / 7  # 評価に用いるデータの割合
 test_split = 1 / 7        # テストに用いるデータの割合
 verbose = 2             # 学習進捗の表示モード
-decay = 0.01            # 減衰率
+decay = 0.05            # 減衰率
 optimizer = Adam(lr=0.0001)      # 最適化アルゴリズム
 # callbacks = [make_tensorboard(set_dir_name='log')]  # コールバック
 
