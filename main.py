@@ -49,24 +49,24 @@ x_train, y_train, x_val, y_val, x_test, y_test = get_main_aux_data(x, y, validat
 x_val[:, subdt_size:] = 0
 x_test[:, subdt_size:] = 0
 
-'''
+
 # 入力データの表示
 n = 10
 plt.figure()
 for i in range(n):
     ax = plt.subplot(2, n, i+1)
-    plt.imshow(x_test[i][:subdt_size].reshape(28, 28))
+    plt.imshow(x_train[i][:subdt_size].reshape(28, 28))
     plt.gray()
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
 
     ax = plt.subplot(2, n, n + i + 1)
-    plt.imshow(x_test[i][subdt_size:].reshape(28, 28))
+    plt.imshow(x_train[i][subdt_size:].reshape(28, 28))
     plt.gray()
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
 plt.show()
-'''
+
 
 # 学習
 trainer = Trainer(percnet, network, optimizer, verbose)
